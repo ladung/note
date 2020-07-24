@@ -1,0 +1,2 @@
+Để sắp xếp theo % CPU, hãy gõ lệnh sau:
+top -o %CPU

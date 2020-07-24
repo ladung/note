@@ -1,0 +1,124 @@
+apt update &&  apt install openvpn
+wget -P ~/ https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.4/EasyRSA-3.0.4.tgz
+mv EasyRSA-3.0.4.tgz /opt/
+cd /opt/
+tar -xvf EasyRSA-3.0.4.tgz 
+cd EasyRSA-3.0.4/
+cp vars.example vars
+vi vars //uncomment set_var
+#sign cert server
+./easyrsa init-pki
+./easyrsa build-ca nopass
+./easyrsa gen-req server nopass
+ cp pki/private/server.key /etc/openvpn/
+./easyrsa import-req pki/reqs/server.req server
+./easyrsa sign-req server server
+cp pki/ca.crt /etc/openvpn/
+
+#generate DH
+./easyrsa gen-dh
+
+openvpn --genkey --secret ta.key
+cp ta.key /etc/openvpn/
+cp pki/dh.pem /etc/openvpn/
+
+#client config
+mkdir -p ~/client-configs/keys
+chmod -R 700 ~/client-configs
+cd /opt/EasyRSA-3.0.4
+./easyrsa gen-req client1 nopass
+cp pki/private/client1.key ~/client-configs/keys/
+./easyrsa import-req pki/reqs/client1.req client1
+./easyrsa sign-req client client1
+cp pki/issued/client1.crt ~/client-configs/keys/
+cp /etc/openvpn/ca.crt ~/client-configs/keys/
+cp /usr/share/doc/openvpn/examples/sample-config-files/server.conf.gz /etc/openvpn/
+
+vi /etc/openvpn/server.conf
+##local 103.142.137.203
+#port 11194
+#;proto tcp
+#proto udp
+#;dev tap
+#dev tun
+#;dev-node MyTap
+#ca ca.crt
+#cert server.crt
+#key server.key  # This file should be kept secret
+#dh dh.pem
+#server 10.8.0.0 255.255.255.0
+#ifconfig-pool-persist /var/log/openvpn/ipp.txt
+#push "route 172.16.62.0 255.255.255.0"
+#;push "route 192.168.20.0 255.255.255.0"
+#;client-config-dir ccd
+#;route 192.168.40.128 255.255.255.248
+#;push "redirect-gateway def1 bypass-dhcp"
+#;push "dhcp-option DNS 208.67.222.222"
+#;push "dhcp-option DNS 208.67.220.220"
+#client-to-client
+#;duplicate-cn
+#keepalive 10 120
+#tls-auth ta.key 0 # This file is secret
+#cipher AES-256-CBC
+#auth SHA256
+#;compress lz4-v2
+#;push "compress lz4-v2"
+#user nobody
+#group nogroup
+#persist-key
+#persist-tun
+#status /var/log/openvpn/openvpn-status.log
+#;log         /var/log/openvpn/openvpn.log
+#log-append  /var/log/openvpn/openvpn.log
+#verb 3
+#plugin /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so login
+#explicit-exit-notify 0
+
+vi /etc/sysctl.conf
+#ipv4=1
+sysctl -p
+systemctl start openvpn@server
+
+##tao file client ovpn
+mkdir -p ~/client-configs/files
+cp /usr/share/doc/openvpn/examples/sample-config-files/client.conf ~/client-configs/base.conf
+vi ~/client-configs/base.conf
+#remote ip_server port
+#auth SHA256
+#key-direction 1
+vi ~/client-configs/make_config.sh
+#################
+#!/bin/bash
+
+# First argument: Client identifier
+
+KEY_DIR=~/client-configs/keys
+OUTPUT_DIR=~/client-configs/files
+BASE_CONFIG=~/client-configs/base.conf
+
+cat ${BASE_CONFIG} \
+            <(echo -e '<ca>') \
+                ${KEY_DIR}/ca.crt \
+                    <(echo -e '</ca>\n<cert>') \
+                        ${KEY_DIR}/${1}.crt \
+                            <(echo -e '</cert>\n<key>') \
+                                ${KEY_DIR}/${1}.key \
+                                    <(echo -e '</key>\n<tls-auth>') \
+                                        ${KEY_DIR}/ta.key \
+                                            <(echo -e '</tls-auth>') \
+                                                > ${OUTPUT_DIR}/${1}.ovpn
+#######################
+chmod 700 ~/client-configs/make_config.sh
+cd ~/client-configs
+./make_config.sh client1
+ cp client1.ovpn toi may client
+
+#################route traffic through openvpn to website, add to server.conf
+push "dhcp-option DNS 1.1.1.1"
+push "route 18.136.112.0 255.255.255.0"
+########
+add user cho authen
+#######################for centos
+https://forums.bsdinsight.com/threads/systemtip-trien-khai-mo-hinh-vpn-su-dung-openvpn-client-to-site-tren-linux.1470/
+##############tun/tap
+https://github.com/thaonguyenvan/meditech-thuctap/tree/master/ThaoNV/Tim%20hieu%20Linux/OpenVPN

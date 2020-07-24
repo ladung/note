@@ -1,0 +1,2 @@
+- tìm tệp thực thi tiến trình: ls -l /proc/<pid>/exe
+- tìm parent ID: ps -p <pid> -o ppid=:wq
