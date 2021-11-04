@@ -5,4 +5,5 @@ Cực nhẹ, fluentbit chỉ chạy có vài MB và craw cực nhanh.
 Dễ cấu hình, cộng đồng support tốt, là project đạt được Graduated of CNCF, mặc dù có khá là ít các lập trình viên contribute vào project này.
 Chạy ổn định trên Kubernetes, với Fluentbit ta nên dùng image và chart của bitnami vì Fluentbit nếu chạy ở dạng Pod và craw log dưới host thì sẽ có một vài quyền hơi đặc biệt, ví dụ Hostpath, mà đã liên quan tới Host thì chạy Pod rootless là tốt nhất, trong khi image mặc định của Fluent lại luôn là root.
 Ảnh dưới là mô hình log EFK thay cho ELK with mixed of Fluentbit + Fluentd
+Cấu hình và cài đặt thì dùng helm của bitnami, cài fluentbit trước và cài fluentd sau, trước đó lấy thông tin user / pass của es để add vào fluentd. Cấu hình thì vào trang chủ của helm và bitnami có sẵn file config mà, chỉ việc sửa lại là xong, còn bác muốn step by step thì khó vì app dạng Cloud Native có phải next next như kiểu Windows hoặc gõ đúng command đâu, team e làm cũng giới thiệu như này xong 2 hôm sau lên luôn, trước đó chưa ai dùng nhé :)))
 https://www.facebook.com/photo?fbid=2037203659780813&set=gm.1184957142015395
